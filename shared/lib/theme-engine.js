@@ -4,6 +4,7 @@
  */
 
 import { extractColors, rgbToString, getComplementary } from './color-extractor.js';
+import { BeatEngine } from './beat-engine.js';
 
 // Genre theme mappings
 const GENRE_THEMES = {
@@ -151,6 +152,9 @@ export class ThemeEngine {
     this.syncWithHA = false;
     this.albumArtColors = null;
     this.haLightColors = null;
+    this.beatEngine = new BeatEngine(eventBus);
+    this.currentBPM = null;
+    this.audioFeatures = null;
   }
 
   /**
@@ -216,6 +220,33 @@ export class ThemeEngine {
       colors.primary = this.haLightColors;
     }
 
+    // Extract BPM and audio features
+    const bpm = trackData.features?.bpm || 120; // Default to 120 BPM if missing
+    const audioFeatures = {
+      energy: trackData.features?.energy || 0.5,
+      valence: trackData.features?.valence || 0.5,
+      danceability: trackData.features?.danceability || 0.5,
+    };
+
+    this.currentBPM = bpm;
+    this.audioFeatures = audioFeatures;
+
+    // Start beat engine with BPM
+    if (bpm && bpm > 0) {
+      this.beatEngine.setBPM(bpm, audioFeatures);
+    }
+
+    // Calculate beat duration in milliseconds
+    const beatDuration = bpm ? `${Math.round(60000 / bpm)}ms` : '1000ms';
+
+    // Calculate intensity level from energy
+    let intensityClass = 'medium';
+    if (audioFeatures.energy < 0.4) {
+      intensityClass = 'low';
+    } else if (audioFeatures.energy > 0.7) {
+      intensityClass = 'high';
+    }
+
     // Build theme object
     const theme = {
       source: this.syncWithHA && this.haLightColors ? 'homeassistant' : 'spotify',
@@ -229,7 +260,13 @@ export class ThemeEngine {
         text: '#ffffff',
         textSecondary: 'rgba(255, 255, 255, 0.7)',
       },
-      effects: genreTheme.effects,
+      effects: {
+        ...genreTheme.effects,
+        beatDuration: beatDuration,
+      },
+      audioFeatures: audioFeatures,
+      bpm: bpm,
+      intensityClass: intensityClass,
       timestamp: Date.now(),
     };
 
@@ -258,7 +295,16 @@ export class ThemeEngine {
     root.style.setProperty('--animation-speed', theme.effects.animationSpeed);
     root.style.setProperty('--blur-strength', theme.effects.blurStrength);
 
-    console.log(`[ThemeEngine] Applied theme: ${theme.genreName} (${theme.source})`);
+    // Apply beat-specific variables
+    root.style.setProperty('--beat-duration', theme.effects.beatDuration || '1000ms');
+    root.style.setProperty('--energy', theme.audioFeatures?.energy || 0.5);
+    root.style.setProperty('--valence', theme.audioFeatures?.valence || 0.5);
+    root.style.setProperty('--danceability', theme.audioFeatures?.danceability || 0.5);
+
+    // Apply genre class to root for CSS targeting
+    root.className = `theme-${theme.genre}`;
+
+    console.log(`[ThemeEngine] Applied theme: ${theme.genreName} (${theme.source}), BPM: ${theme.bpm}, Energy: ${theme.audioFeatures?.energy?.toFixed(2)}`);
   }
 
   /**

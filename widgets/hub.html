@@ -143,6 +143,37 @@
                       });
                     });
                   });
+
+                  // Set up beat-synced light pulsing
+                  let beatCount = 0;
+                  eventBus.on(EventTypes.BEAT_TICK, async (beatData) => {
+                    beatCount++;
+
+                    // Pulse lights every 2 beats (reduces API calls)
+                    const pulseEveryNBeats = 2;
+                    if (beatCount % pulseEveryNBeats !== 0) return;
+
+                    // Skip if no Yeelight entities configured
+                    if (!config.yeelightEntities || config.yeelightEntities.length === 0) return;
+
+                    config.yeelightEntities.forEach(async (entityId) => {
+                      const beatInterval = beatData.beatInterval;
+                      const halfBeat = beatInterval / 2;
+
+                      // Energy modulation: higher energy = brighter pulse
+                      const energy = beatData.audioFeatures?.energy || 0.5;
+                      const maxBrightness = Math.floor(255 * (0.5 + energy * 0.5)); // Range: 127-255
+                      const dimBrightness = Math.floor(maxBrightness * 0.6); // 60% of max
+
+                      // Pulse down
+                      await haService.pulseBrightness(entityId, dimBrightness, halfBeat * 0.8);
+
+                      // Pulse back up after half beat
+                      setTimeout(async () => {
+                        await haService.pulseBrightness(entityId, maxBrightness, halfBeat * 0.8);
+                      }, halfBeat);
+                    });
+                  });
                 })
                 .catch(error => {
                   console.error('[Hub] HA connection failed:', error);
@@ -203,6 +234,18 @@
               if (theme) {
                 themeEngine.broadcastTheme(theme);
               }
+
+              // Flash Yeelights on track change
+              fetch('/api/config')
+                .then(res => res.json())
+                .then(cfg => {
+                  if (cfg.homeAssistant.configured && cfg.yeelightEntities) {
+                    cfg.yeelightEntities.forEach(async (entityId) => {
+                      await haService.flashLight(entityId, 'short');
+                    });
+                  }
+                })
+                .catch(err => console.error('[Hub] Flash lights failed:', err));
             }
 
             // Broadcast track update to all widgets

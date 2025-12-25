@@ -306,6 +306,44 @@ export class HomeAssistantService {
   }
 
   /**
+   * Pulse light brightness (for beat synchronization)
+   * @param {string} entityId - Light entity ID
+   * @param {number} targetBrightness - Target brightness (0-255)
+   * @param {number} transitionMs - Transition duration in milliseconds
+   */
+  async pulseBrightness(entityId, targetBrightness, transitionMs = 100) {
+    try {
+      const transitionSeconds = transitionMs / 1000;
+
+      return await this.callService('light', 'turn_on', {
+        entity_id: entityId,
+        brightness: Math.round(targetBrightness),
+        transition: transitionSeconds,
+      });
+    } catch (error) {
+      console.error(`[HA Service] Pulse brightness failed for ${entityId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Flash light (quick on/off for track changes)
+   * @param {string} entityId - Light entity ID
+   * @param {string} flashType - 'short' or 'long'
+   */
+  async flashLight(entityId, flashType = 'short') {
+    try {
+      return await this.callService('light', 'turn_on', {
+        entity_id: entityId,
+        flash: flashType,
+      });
+    } catch (error) {
+      console.error(`[HA Service] Flash failed for ${entityId}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Handle reconnection with exponential backoff
    */
   handleReconnect() {

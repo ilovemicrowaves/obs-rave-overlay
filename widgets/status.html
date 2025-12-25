@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=1920, height=1080">
   <title>Status - OBS Overlay</title>
   <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/animations.css">
   <style>
     body {
       width: 320px;
@@ -72,6 +73,8 @@
     function Status() {
       const [message, setMessage] = useState('Vibing 🎵');
       const [showIcon] = useState(true);
+      const [themeClass, setThemeClass] = useState('theme-default');
+      const [intensityClass, setIntensityClass] = useState('intensity-medium');
 
       useEffect(() => {
         const eventBus = new EventBus();
@@ -83,6 +86,10 @@
 
         // Listen to theme updates
         eventBus.on(EventTypes.THEME_UPDATE, (theme) => {
+          // Set dance classes
+          setThemeClass(`theme-${theme.genre}`);
+          setIntensityClass(`intensity-${theme.intensityClass}`);
+
           const root = document.documentElement;
           Object.entries(theme.colors).forEach(([key, value]) => {
             root.style.setProperty(`--color-${key}`, value);
@@ -123,7 +130,7 @@
       }, []);
 
       return html`
-        <div class="widget status-widget">
+        <div class="widget widget-dance status-widget ${themeClass} ${intensityClass}">
           <div class="status-message">${message}</div>
         </div>
       `;

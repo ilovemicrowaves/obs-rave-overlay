@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=1920, height=1080">
   <title>Now Playing - OBS Overlay</title>
   <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/animations.css">
   <style>
     body {
       width: 420px;
@@ -183,6 +184,8 @@
       const [theme, setTheme] = useState(null);
       const [progress, setProgress] = useState(0);
       const [error, setError] = useState(null);
+      const [themeClass, setThemeClass] = useState('theme-default');
+      const [intensityClass, setIntensityClass] = useState('intensity-medium');
 
       useEffect(() => {
         const eventBus = new EventBus();
@@ -204,6 +207,10 @@
         const unsubscribeTheme = eventBus.on(EventTypes.THEME_UPDATE, (themeData) => {
           console.log('[Now Playing] Theme update:', themeData);
           setTheme(themeData);
+
+          // Set dance classes
+          setThemeClass(`theme-${themeData.genre}`);
+          setIntensityClass(`intensity-${themeData.intensityClass}`);
 
           // Apply theme to document
           const root = document.documentElement;
@@ -284,7 +291,7 @@
       const durationTime = formatTime(track.duration_ms);
 
       return html`
-        <div class="widget widget-glow now-playing">
+        <div class="widget widget-glow widget-dance now-playing ${themeClass} ${intensityClass}">
           <div class="album-art-container">
             <div class="album-art-glow"></div>
             <div class="album-art">

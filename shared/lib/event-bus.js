@@ -22,6 +22,9 @@ export const EventTypes = {
   AUDIO_LEVEL_UPDATE: 'audio:level',
   AUDIO_SPECTRUM_UPDATE: 'audio:spectrum',
 
+  // Beat events
+  BEAT_TICK: 'beat:tick',
+
   // Status events
   STATUS_MESSAGE_UPDATE: 'status:message',
 

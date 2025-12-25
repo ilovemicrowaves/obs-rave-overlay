@@ -1,0 +1,261 @@
+/**
+ * Music-Synchronized Dance Animations
+ * Genre-specific keyframes for OBS overlay widgets
+ */
+
+/* ==================== GENRE-SPECIFIC KEYFRAMES ==================== */
+
+/* TRANCE - Smooth waves, flowing Y-axis translation */
+@keyframes dance-trance {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  25% {
+    transform: translateY(-6px) scale(1.02);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.03);
+  }
+  75% {
+    transform: translateY(-6px) scale(1.02);
+  }
+}
+
+/* HARDCORE - Aggressive scale pulses, rapid transforms */
+@keyframes dance-hardcore {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.08) rotate(-1deg);
+  }
+  50% {
+    transform: scale(0.96) rotate(0deg);
+  }
+  75% {
+    transform: scale(1.06) rotate(1deg);
+  }
+}
+
+/* HARDSTYLE - Sharp bounces, kick-driven movements */
+@keyframes dance-hardstyle {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  10% {
+    transform: scale(1.08) translateY(-5px);
+  }
+  20% {
+    transform: scale(0.98) translateY(0);
+  }
+  30% {
+    transform: scale(1.03) translateY(-2px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* TECHNO - Mechanical, repetitive patterns */
+@keyframes dance-techno {
+  0%, 100% {
+    transform: translateX(0) scale(1);
+  }
+  25% {
+    transform: translateX(2px) scale(1.01);
+  }
+  50% {
+    transform: translateX(0) scale(1.02);
+  }
+  75% {
+    transform: translateX(-2px) scale(1.01);
+  }
+}
+
+/* HOUSE - Rhythmic sway, groovy rotations */
+@keyframes dance-house {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  33% {
+    transform: rotate(-1deg) translateY(-4px);
+  }
+  66% {
+    transform: rotate(1deg) translateY(-3px);
+  }
+}
+
+/* DNB - Complex, fast multi-axis transforms */
+@keyframes dance-dnb {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  16% {
+    transform: translate(1px, -3px) scale(1.02);
+  }
+  33% {
+    transform: translate(-1px, -5px) scale(1.04);
+  }
+  50% {
+    transform: translate(1px, -4px) scale(1.03);
+  }
+  66% {
+    transform: translate(-1px, -3px) scale(1.02);
+  }
+  83% {
+    transform: translate(0, -2px) scale(1.01);
+  }
+}
+
+/* DEFAULT - Generic pulse for unknown genres */
+@keyframes dance-default {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+/* ==================== WIDGET DANCE CLASSES ==================== */
+
+/* Base dance class - required for all dancing widgets */
+.widget-dance {
+  animation-duration: var(--beat-duration, 1000ms);
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+  transform-origin: center center;
+}
+
+/* Genre-specific dance classes with unique easing */
+.widget-dance.theme-trance {
+  animation-name: dance-trance;
+  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Ease-out-quad - smooth, ethereal */
+}
+
+.widget-dance.theme-hardcore {
+  animation-name: dance-hardcore;
+  animation-timing-function: cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Back ease-out - aggressive, punchy */
+}
+
+.widget-dance.theme-hardstyle {
+  animation-name: dance-hardstyle;
+  animation-timing-function: cubic-bezier(0.17, 0.67, 0.83, 0.67); /* Ease-out-cubic - sharp, powerful */
+}
+
+.widget-dance.theme-techno {
+  animation-name: dance-techno;
+  animation-timing-function: steps(4, end); /* Stepped - mechanical, robotic */
+}
+
+.widget-dance.theme-house {
+  animation-name: dance-house;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); /* Ease-in-out-sine - groovy, rhythmic */
+}
+
+.widget-dance.theme-dnb {
+  animation-name: dance-dnb;
+  animation-timing-function: linear; /* Linear - fast, continuous */
+}
+
+.widget-dance.theme-default {
+  animation-name: dance-default;
+  animation-timing-function: ease-in-out;
+}
+
+/* ==================== INTENSITY MODIFIERS ==================== */
+
+/* Low energy (< 0.4): Subtle, gentle movements */
+.widget-dance.intensity-low {
+  animation-duration: calc(var(--beat-duration, 1000ms) * 1.2);
+  transform-origin: center center;
+}
+
+/* Medium energy (0.4-0.7): Standard movements */
+.widget-dance.intensity-medium {
+  animation-duration: var(--beat-duration, 1000ms);
+}
+
+/* High energy (> 0.7): More pronounced movements */
+.widget-dance.intensity-high {
+  animation-duration: calc(var(--beat-duration, 1000ms) * 0.85);
+  transform-origin: center center;
+}
+
+/* ==================== ENHANCED GLOW EFFECTS ==================== */
+
+/* Beat-synced glow pulse for album art */
+.widget-dance .album-art-glow {
+  animation: glow-pulse var(--beat-duration, 1000ms) ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    filter: blur(calc(var(--blur-strength, 12px) * 0.8));
+  }
+  50% {
+    opacity: 1;
+    filter: blur(var(--blur-strength, 12px));
+  }
+}
+
+/* Beat-synced heartbeat for BPM icon */
+.widget-dance .bpm-icon {
+  animation: heartbeat-sync var(--beat-duration, 1000ms) ease-in-out infinite;
+}
+
+@keyframes heartbeat-sync {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+/* ==================== PARTICLE EFFECTS (OPTIONAL) ==================== */
+
+/* Subtle background shimmer on high energy tracks */
+.widget-dance.intensity-high::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    transparent 100%
+  );
+  animation: shimmer calc(var(--beat-duration, 1000ms) * 4) linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-100%);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%);
+  }
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+
+/* Reduce animation intensity if user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .widget-dance {
+    animation: none !important;
+  }
+
+  .widget-dance .album-art-glow,
+  .widget-dance .bpm-icon {
+    animation: none !important;
+  }
+}
+
+/* Disable animations during OBS scene transitions */
+.widget-dance.paused {
+  animation-play-state: paused;
+}

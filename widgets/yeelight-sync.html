@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=1920, height=1080">
   <title>Yeelight Sync - OBS Overlay</title>
   <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/animations.css">
   <style>
     body {
       width: 240px;
@@ -145,6 +146,8 @@
     function YeelightSync() {
       const [lights, setLights] = useState([]);
       const [connected, setConnected] = useState(false);
+      const [themeClass, setThemeClass] = useState('theme-default');
+      const [intensityClass, setIntensityClass] = useState('intensity-medium');
 
       useEffect(() => {
         const eventBus = new EventBus();
@@ -171,6 +174,10 @@
 
         // Listen to theme updates
         eventBus.on(EventTypes.THEME_UPDATE, (theme) => {
+          // Set dance classes
+          setThemeClass(`theme-${theme.genre}`);
+          setIntensityClass(`intensity-${theme.intensityClass}`);
+
           const root = document.documentElement;
           Object.entries(theme.colors).forEach(([key, value]) => {
             root.style.setProperty(`--color-${key}`, value);
@@ -187,7 +194,7 @@
       }, []);
 
       return html`
-        <div class="widget yeelight-widget">
+        <div class="widget widget-dance yeelight-widget ${themeClass} ${intensityClass}">
           <div class="yeelight-title">💡 Lights</div>
 
           ${!connected && html`
