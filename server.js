@@ -5,6 +5,7 @@ import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { networkInterfaces } from 'os';
 
 dotenv.config();
 
@@ -21,17 +22,27 @@ let spotifyTokens = {
   expires_at: null,
 };
 
-// CORS configuration
-const allowedOrigins = [
-  `http://localhost:${PORT}`,
-  `http://127.0.0.1:${PORT}`,
-  // Add your Ubuntu server IP here when deploying
-  'http://192.168.1.100:3000',
-];
-
+// CORS configuration - allow local network access
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(allowed => origin.startsWith(allowed.split(':').slice(0, 2).join(':')))) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allow localhost and local network IPs
+    const url = new URL(origin);
+    const hostname = url.hostname;
+
+    // Allow localhost, 127.0.0.1, and local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    const isLocal =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
+
+    if (isLocal) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -324,21 +335,39 @@ app.get('/api/config', (req, res) => {
 
 // ==================== START SERVER ====================
 
-const server = app.listen(PORT, () => {
+// Get local network IP address
+function getLocalIP() {
+  const nets = networkInterfaces();
+
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      // Skip internal (loopback) and non-IPv4 addresses
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+const server = app.listen(PORT, '0.0.0.0', async () => {
+  const localIP = getLocalIP();
+
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║          OBS Rave Overlay Server                          ║
 ║                                                            ║
-║  Server running at: http://localhost:${PORT}                 ║
+║  Local:   http://localhost:${PORT}                           ║
+║  Network: http://${localIP}:${PORT}                ${' '.repeat(Math.max(0, 20 - localIP.length))}║
 ║                                                            ║
 ║  Spotify Auth: ${spotifyTokens.access_token ? '✓ Authenticated' : '✗ Not authenticated'}                   ║
 ║  Home Assistant: ${process.env.HA_URL ? '✓ Configured' : '✗ Not configured'}                     ║
 ║                                                            ║
 ║  To authenticate Spotify:                                 ║
-║  → http://localhost:${PORT}/auth/spotify/login               ║
+║  → http://${localIP}:${PORT}/auth/spotify/login       ${' '.repeat(Math.max(0, 20 - localIP.length))}║
 ║                                                            ║
 ║  Widgets available at:                                    ║
-║  → http://localhost:${PORT}/widgets/                         ║
+║  → http://${localIP}:${PORT}/widgets/                 ${' '.repeat(Math.max(0, 20 - localIP.length))}║
 ╚════════════════════════════════════════════════════════════╝
   `);
 });
