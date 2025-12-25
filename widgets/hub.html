@@ -249,21 +249,22 @@
               }
 
               firstPoll = false;
-            } else {
-              console.log('[Hub] Skipping theme generation (no track change, not first poll)');
-            }
 
               // Flash Yeelights on track change
-              fetch('/api/config')
-                .then(res => res.json())
-                .then(cfg => {
-                  if (cfg.homeAssistant.configured && cfg.yeelightEntities) {
-                    cfg.yeelightEntities.forEach(async (entityId) => {
-                      await haService.flashLight(entityId, 'short');
-                    });
-                  }
-                })
-                .catch(err => console.error('[Hub] Flash lights failed:', err));
+              if (trackChanged) {
+                fetch('/api/config')
+                  .then(res => res.json())
+                  .then(cfg => {
+                    if (cfg.homeAssistant.configured && cfg.yeelightEntities) {
+                      cfg.yeelightEntities.forEach(async (entityId) => {
+                        await haService.flashLight(entityId, 'short');
+                      });
+                    }
+                  })
+                  .catch(err => console.error('[Hub] Flash lights failed:', err));
+              }
+            } else {
+              console.log('[Hub] Skipping theme generation (no track change, not first poll)');
             }
 
             // Broadcast track update to all widgets
