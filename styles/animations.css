@@ -125,6 +125,8 @@
   animation-iteration-count: infinite;
   animation-fill-mode: both;
   transform-origin: center center;
+  /* TEST: If you see a red border, CSS is loading! */
+  border: 2px solid red !important;
 }
 
 /* Genre-specific dance classes with unique easing */
