@@ -210,6 +210,7 @@
           });
 
         // Spotify polling function
+        let firstPoll = true;
         function startSpotifyPolling() {
           spotifyService.startPolling(async (trackData, trackChanged) => {
             if (trackData.error) {
@@ -226,14 +227,17 @@
               lastUpdate: new Date().toLocaleTimeString(),
             }));
 
-            // Generate theme when track changes
-            if (trackChanged) {
-              console.log('[Hub] Track changed, generating new theme');
+            // Generate theme when track changes OR on first poll
+            if (trackChanged || firstPoll) {
+              console.log(`[Hub] ${firstPoll ? 'Initial load' : 'Track changed'}, generating new theme`);
               const theme = await themeEngine.generateThemeFromTrack(trackData);
 
               if (theme) {
                 themeEngine.broadcastTheme(theme);
+                console.log('[Hub] Theme broadcasted:', theme.genre, theme.bpm, 'BPM');
               }
+
+              firstPoll = false;
 
               // Flash Yeelights on track change
               fetch('/api/config')
