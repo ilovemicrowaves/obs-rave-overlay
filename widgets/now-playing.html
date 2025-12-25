@@ -205,7 +205,10 @@
 
         // Listen to theme updates
         const unsubscribeTheme = eventBus.on(EventTypes.THEME_UPDATE, (themeData) => {
-          console.log('[Now Playing] Theme update:', themeData);
+          console.log('[Now Playing] Theme update received:', themeData);
+          console.log('[Now Playing] Setting classes:', `theme-${themeData.genre}`, `intensity-${themeData.intensityClass}`);
+          console.log('[Now Playing] Beat duration:', themeData.effects.beatDuration);
+
           setTheme(themeData);
 
           // Set dance classes
@@ -216,10 +219,22 @@
           const root = document.documentElement;
           Object.entries(themeData.colors).forEach(([key, value]) => {
             root.style.setProperty(`--color-${key}`, value);
+            console.log(`[Now Playing] Set CSS var --color-${key}:`, value);
           });
           Object.entries(themeData.effects).forEach(([key, value]) => {
-            root.style.setProperty(`--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
+            const cssKey = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+            root.style.setProperty(cssKey, value);
+            console.log(`[Now Playing] Set CSS var ${cssKey}:`, value);
           });
+
+          // Log final widget classes after state update
+          setTimeout(() => {
+            const widget = document.querySelector('.now-playing');
+            if (widget) {
+              console.log('[Now Playing] Widget classes:', widget.className);
+              console.log('[Now Playing] Computed animation:', window.getComputedStyle(widget).animation);
+            }
+          }, 100);
         });
 
         // Announce widget ready
