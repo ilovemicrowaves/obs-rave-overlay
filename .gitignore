@@ -4,6 +4,7 @@ package-lock.json
 
 # Environment variables (contains secrets!)
 .env
+.spotify_tokens.json
 
 # Logs
 *.log

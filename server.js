@@ -4,8 +4,9 @@ import fetch from 'node-fetch';
 import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import { networkInterfaces } from 'os';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 dotenv.config();
 
@@ -15,12 +16,40 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// In-memory token storage (reset on server restart)
-let spotifyTokens = {
-  access_token: null,
-  refresh_token: null,
-  expires_at: null,
-};
+// Token storage file path
+const TOKEN_FILE = join(__dirname, '.spotify_tokens.json');
+
+// Load tokens from file if exists
+function loadTokens() {
+  try {
+    if (existsSync(TOKEN_FILE)) {
+      const data = readFileSync(TOKEN_FILE, 'utf8');
+      const tokens = JSON.parse(data);
+      console.log('[Spotify] Loaded tokens from file');
+      return tokens;
+    }
+  } catch (error) {
+    console.error('[Spotify] Error loading tokens:', error.message);
+  }
+  return {
+    access_token: null,
+    refresh_token: null,
+    expires_at: null,
+  };
+}
+
+// Save tokens to file
+function saveTokens(tokens) {
+  try {
+    writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), 'utf8');
+    console.log('[Spotify] Tokens saved to file');
+  } catch (error) {
+    console.error('[Spotify] Error saving tokens:', error.message);
+  }
+}
+
+// Token storage (persisted to file)
+let spotifyTokens = loadTokens();
 
 // CORS configuration - allow local network access
 app.use(cors({
@@ -96,6 +125,7 @@ app.get('/auth/spotify/callback', async (req, res) => {
       spotifyTokens.access_token = data.access_token;
       spotifyTokens.refresh_token = data.refresh_token;
       spotifyTokens.expires_at = Date.now() + (data.expires_in * 1000);
+      saveTokens(spotifyTokens);
 
       console.log('[Spotify] Authentication successful');
       res.redirect('/?spotify_auth=success');
@@ -134,6 +164,7 @@ app.post('/auth/spotify/refresh', async (req, res) => {
     if (data.access_token) {
       spotifyTokens.access_token = data.access_token;
       spotifyTokens.expires_at = Date.now() + (data.expires_in * 1000);
+      saveTokens(spotifyTokens);
 
       console.log('[Spotify] Token refreshed');
       res.json({ success: true });
