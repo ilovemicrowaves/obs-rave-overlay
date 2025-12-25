@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Yeelight Sync - OBS Overlay</title>
+  <link rel="stylesheet" href="../styles/base.css">
+  <style>
+    body {
+      width: 240px;
+      height: 180px;
+    }
+
+    .yeelight-widget {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .yeelight-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    .lights-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .light-bulb {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bulb {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      box-shadow:
+        0 0 20px var(--bulb-color),
+        0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .bulb.on {
+      border-color: rgba(255, 255, 255, 0.4);
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    .bulb.off {
+      background: rgba(60, 60, 60, 0.5);
+      border-color: rgba(100, 100, 100, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes glow {
+      0%, 100% {
+        box-shadow:
+          0 0 20px var(--bulb-color),
+          0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+      50% {
+        box-shadow:
+          0 0 30px var(--bulb-color),
+          0 0 40px var(--bulb-color),
+          0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    .bulb-name {
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      text-align: center;
+      max-width: 60px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .no-lights {
+      text-align: center;
+      color: var(--color-text-secondary);
+      font-size: 12px;
+      padding: 20px;
+    }
+
+    .disconnected {
+      text-align: center;
+      color: #ef4444;
+      font-size: 12px;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import { h, render } from 'https://esm.sh/preact@10.19.3';
+    import { useState, useEffect } from 'https://esm.sh/preact@10.19.3/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    import { EventBus, EventTypes } from '../shared/lib/event-bus.js';
+
+    const html = htm.bind(h);
+
+    function LightBulb({ light }) {
+      const isOn = light.state === 'on';
+      const rgb = light.rgb_color || [100, 100, 100];
+      const brightness = light.brightness || 0;
+
+      // Adjust brightness (0-255 to 0-1)
+      const adjustedBrightness = isOn ? brightness / 255 : 0.2;
+      const color = isOn
+        ? `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${adjustedBrightness})`
+        : 'rgba(60, 60, 60, 0.5)';
+
+      const glowColor = isOn
+        ? `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.8)`
+        : 'transparent';
+
+      return html`
+        <div class="light-bulb">
+          <div
+            class="bulb ${isOn ? 'on' : 'off'}"
+            style="
+              background: ${color};
+              --bulb-color: ${glowColor};
+            "
+          ></div>
+          <div class="bulb-name">${light.friendly_name || light.entity_id}</div>
+        </div>
+      `;
+    }
+
+    function YeelightSync() {
+      const [lights, setLights] = useState([]);
+      const [connected, setConnected] = useState(false);
+
+      useEffect(() => {
+        const eventBus = new EventBus();
+
+        // Listen to HA light updates
+        eventBus.on(EventTypes.HA_LIGHT_UPDATE, (lightData) => {
+          setConnected(true);
+          setLights(prevLights => {
+            const index = prevLights.findIndex(l => l.entity_id === lightData.entity_id);
+            if (index >= 0) {
+              const newLights = [...prevLights];
+              newLights[index] = lightData;
+              return newLights;
+            } else {
+              return [...prevLights, lightData];
+            }
+          });
+        });
+
+        // Listen to HA connection status
+        eventBus.on(EventTypes.HA_CONNECTION_STATUS, (status) => {
+          setConnected(status.connected);
+        });
+
+        // Listen to theme updates
+        eventBus.on(EventTypes.THEME_UPDATE, (theme) => {
+          const root = document.documentElement;
+          Object.entries(theme.colors).forEach(([key, value]) => {
+            root.style.setProperty(`--color-${key}`, value);
+          });
+        });
+
+        // Announce widget ready
+        eventBus.emit(EventTypes.WIDGET_READY, {
+          widget: 'yeelight-sync',
+          timestamp: Date.now(),
+        });
+
+        return () => eventBus.disconnect();
+      }, []);
+
+      return html`
+        <div class="widget yeelight-widget">
+          <div class="yeelight-title">💡 Lights</div>
+
+          ${!connected && html`
+            <div class="disconnected">
+              Home Assistant Disconnected
+            </div>
+          `}
+
+          ${connected && lights.length === 0 && html`
+            <div class="no-lights">
+              Waiting for light data...
+            </div>
+          `}
+
+          ${connected && lights.length > 0 && html`
+            <div class="lights-container">
+              ${lights.map(light => html`<${LightBulb} light=${light} key=${light.entity_id} />`)}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    render(html`<${YeelightSync} />`, document.getElementById('root'));
+  </script>
+</body>
+</html>

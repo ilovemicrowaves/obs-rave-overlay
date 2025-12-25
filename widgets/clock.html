@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Clock - OBS Overlay</title>
+  <link rel="stylesheet" href="../styles/base.css">
+  <style>
+    body {
+      width: 280px;
+      height: 140px;
+    }
+
+    .clock-widget {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .clock-time {
+      font-size: 48px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -2px;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .clock-date {
+      font-size: 14px;
+      color: var(--color-text);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .clock-uptime {
+      font-size: 12px;
+      color: var(--color-accent);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      margin-top: 4px;
+    }
+
+    .uptime-label {
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import { h, render } from 'https://esm.sh/preact@10.19.3';
+    import { useState, useEffect } from 'https://esm.sh/preact@10.19.3/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    import { EventBus, EventTypes } from '../shared/lib/event-bus.js';
+
+    const html = htm.bind(h);
+
+    function formatTime(date) {
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+    }
+
+    function formatDate(date) {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    function formatUptime(ms) {
+      const seconds = Math.floor(ms / 1000);
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function Clock() {
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [sessionStart] = useState(Date.now());
+
+      useEffect(() => {
+        const eventBus = new EventBus();
+
+        // Listen to theme updates
+        eventBus.on(EventTypes.THEME_UPDATE, (theme) => {
+          const root = document.documentElement;
+          Object.entries(theme.colors).forEach(([key, value]) => {
+            root.style.setProperty(`--color-${key}`, value);
+          });
+          Object.entries(theme.effects).forEach(([key, value]) => {
+            const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+            root.style.setProperty(`--${cssKey}`, value);
+          });
+        });
+
+        // Announce widget ready
+        eventBus.emit(EventTypes.WIDGET_READY, {
+          widget: 'clock',
+          timestamp: Date.now(),
+        });
+
+        return () => eventBus.disconnect();
+      }, []);
+
+      // Update time every second
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setCurrentTime(new Date());
+        }, 1000);
+
+        return () => clearInterval(interval);
+      }, []);
+
+      const uptime = Date.now() - sessionStart;
+
+      return html`
+        <div class="widget widget-glow clock-widget">
+          <div class="clock-time">${formatTime(currentTime)}</div>
+          <div class="clock-date">${formatDate(currentTime)}</div>
+          <div>
+            <div class="uptime-label">Session Time</div>
+            <div class="clock-uptime">${formatUptime(uptime)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    render(html`<${Clock} />`, document.getElementById('root'));
+  </script>
+</body>
+</html>

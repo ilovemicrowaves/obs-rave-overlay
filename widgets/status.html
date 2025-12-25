@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Status - OBS Overlay</title>
+  <link rel="stylesheet" href="../styles/base.css">
+  <style>
+    body {
+      width: 320px;
+      height: 80px;
+    }
+
+    .status-widget {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .status-message {
+      font-size: 18px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .status-icon {
+      font-size: 24px;
+      margin-right: 12px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import { h, render } from 'https://esm.sh/preact@10.19.3';
+    import { useState, useEffect } from 'https://esm.sh/preact@10.19.3/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    import { EventBus, EventTypes } from '../shared/lib/event-bus.js';
+
+    const html = htm.bind(h);
+
+    function Status() {
+      const [message, setMessage] = useState('Vibing 🎵');
+      const [showIcon] = useState(true);
+
+      useEffect(() => {
+        const eventBus = new EventBus();
+
+        // Listen to status message updates
+        eventBus.on(EventTypes.STATUS_MESSAGE_UPDATE, (data) => {
+          setMessage(data.message || 'Vibing 🎵');
+        });
+
+        // Listen to theme updates
+        eventBus.on(EventTypes.THEME_UPDATE, (theme) => {
+          const root = document.documentElement;
+          Object.entries(theme.colors).forEach(([key, value]) => {
+            root.style.setProperty(`--color-${key}`, value);
+          });
+        });
+
+        // Listen to Spotify updates to auto-generate status
+        eventBus.on(EventTypes.SPOTIFY_TRACK_UPDATE, (trackData) => {
+          if (trackData.isPlaying) {
+            // You can auto-update the status based on genre
+            const genreMessages = {
+              'trance': '✨ In a Trance',
+              'hardcore': '⚡ Going Hard',
+              'hardstyle': '💪 Hardstyle Vibes',
+              'techno': '🔊 Techno Mode',
+              'house': '🏠 House Party',
+              'dnb': '🥁 DnB Energy',
+            };
+
+            const genre = trackData.genre?.toLowerCase() || '';
+            for (const [key, msg] of Object.entries(genreMessages)) {
+              if (genre.includes(key)) {
+                // Only update if no custom message was set
+                // You can customize this logic
+                break;
+              }
+            }
+          }
+        });
+
+        // Announce widget ready
+        eventBus.emit(EventTypes.WIDGET_READY, {
+          widget: 'status',
+          timestamp: Date.now(),
+        });
+
+        return () => eventBus.disconnect();
+      }, []);
+
+      return html`
+        <div class="widget status-widget">
+          <div class="status-message">${message}</div>
+        </div>
+      `;
+    }
+
+    render(html`<${Status} />`, document.getElementById('root'));
+  </script>
+</body>
+</html>
