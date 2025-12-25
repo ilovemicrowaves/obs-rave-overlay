@@ -302,7 +302,14 @@ export class ThemeEngine {
     root.style.setProperty('--danceability', theme.audioFeatures?.danceability || 0.5);
 
     // Apply genre class to root for CSS targeting
-    root.className = `theme-${theme.genre}`;
+    // Remove any existing theme-* classes first
+    root.classList.forEach(className => {
+      if (className.startsWith('theme-')) {
+        root.classList.remove(className);
+      }
+    });
+    // Add the new theme class
+    root.classList.add(`theme-${theme.genre}`);
 
     console.log(`[ThemeEngine] Applied theme: ${theme.genreName} (${theme.source}), BPM: ${theme.bpm}, Energy: ${theme.audioFeatures?.energy?.toFixed(2)}`);
   }
