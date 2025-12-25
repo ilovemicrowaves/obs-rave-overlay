@@ -121,67 +121,54 @@
 
 /* Base dance class - required for all dancing widgets */
 .widget-dance {
-  animation-duration: var(--beat-duration, 1000ms);
-  animation-iteration-count: infinite;
-  animation-fill-mode: both;
   transform-origin: center center;
-  /* TEST: If you see a red border, CSS is loading! */
-  border: 2px solid red !important;
+  /* TEST: Red border removed after testing */
 }
 
-/* Genre-specific dance classes with unique easing */
+/* Genre-specific dance classes with ALL animation properties */
 .widget-dance.theme-trance {
-  animation-name: dance-trance;
-  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Ease-out-quad - smooth, ethereal */
+  animation: dance-trance var(--beat-duration, 1000ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite both;
 }
 
 .widget-dance.theme-hardcore {
-  animation-name: dance-hardcore;
-  animation-timing-function: cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Back ease-out - aggressive, punchy */
+  animation: dance-hardcore var(--beat-duration, 1000ms) cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite both;
 }
 
 .widget-dance.theme-hardstyle {
-  animation-name: dance-hardstyle;
-  animation-timing-function: cubic-bezier(0.17, 0.67, 0.83, 0.67); /* Ease-out-cubic - sharp, powerful */
+  animation: dance-hardstyle var(--beat-duration, 1000ms) cubic-bezier(0.17, 0.67, 0.83, 0.67) infinite both;
 }
 
 .widget-dance.theme-techno {
-  animation-name: dance-techno;
-  animation-timing-function: steps(4, end); /* Stepped - mechanical, robotic */
+  animation: dance-techno var(--beat-duration, 1000ms) steps(4, end) infinite both;
 }
 
 .widget-dance.theme-house {
-  animation-name: dance-house;
-  animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); /* Ease-in-out-sine - groovy, rhythmic */
+  animation: dance-house var(--beat-duration, 1000ms) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite both;
 }
 
 .widget-dance.theme-dnb {
-  animation-name: dance-dnb;
-  animation-timing-function: linear; /* Linear - fast, continuous */
+  animation: dance-dnb var(--beat-duration, 1000ms) linear infinite both;
 }
 
 .widget-dance.theme-default {
-  animation-name: dance-default;
-  animation-timing-function: ease-in-out;
+  animation: dance-default var(--beat-duration, 1000ms) ease-in-out infinite both;
 }
 
 /* ==================== INTENSITY MODIFIERS ==================== */
 
-/* Low energy (< 0.4): Subtle, gentle movements */
+/* Low energy (< 0.4): Subtle, gentle movements - slower */
 .widget-dance.intensity-low {
-  animation-duration: calc(var(--beat-duration, 1000ms) * 1.2);
-  transform-origin: center center;
+  animation-duration: calc(var(--beat-duration, 1000ms) * 1.2) !important;
 }
 
-/* Medium energy (0.4-0.7): Standard movements */
+/* Medium energy (0.4-0.7): Standard movements - use base duration */
 .widget-dance.intensity-medium {
-  animation-duration: var(--beat-duration, 1000ms);
+  /* Uses duration from theme class */
 }
 
-/* High energy (> 0.7): More pronounced movements */
+/* High energy (> 0.7): More pronounced movements - faster */
 .widget-dance.intensity-high {
-  animation-duration: calc(var(--beat-duration, 1000ms) * 0.85);
-  transform-origin: center center;
+  animation-duration: calc(var(--beat-duration, 1000ms) * 0.85) !important;
 }
 
 /* ==================== ENHANCED GLOW EFFECTS ==================== */
