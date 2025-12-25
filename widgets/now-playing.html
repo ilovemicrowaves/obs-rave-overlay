@@ -175,7 +175,7 @@
       const seconds = Math.floor(ms / 1000);
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
-      return \`\${mins}:\${secs.toString().padStart(2, '0')}\`;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     function NowPlaying() {
@@ -208,10 +208,10 @@
           // Apply theme to document
           const root = document.documentElement;
           Object.entries(themeData.colors).forEach(([key, value]) => {
-            root.style.setProperty(\`--color-\${key}\`, value);
+            root.style.setProperty(`--color-${key}`, value);
           });
           Object.entries(themeData.effects).forEach(([key, value]) => {
-            root.style.setProperty(\`--\${key.replace(/([A-Z])/g, '-$1').toLowerCase()}\`, value);
+            root.style.setProperty(`--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
           });
         });
 
@@ -241,22 +241,22 @@
       }, [trackData]);
 
       if (error) {
-        return html\`
+        return html`
           <div class="widget">
             <div class="error">
-              <strong>Spotify Error:</strong> \${error}
-              \${error === 'Not authenticated' && html\`
+              <strong>Spotify Error:</strong> ${error}
+              ${error === 'Not authenticated' && html`
                 <div style="margin-top: 8px;">
                   <a href="/auth/spotify/login" style="color: #10b981;">Authenticate Spotify</a>
                 </div>
-              \`}
+              `}
             </div>
           </div>
-        \`;
+        `;
       }
 
       if (!trackData) {
-        return html\`
+        return html`
           <div class="widget">
             <div class="loading-container">
               <div class="loading">
@@ -265,66 +265,66 @@
               </div>
             </div>
           </div>
-        \`;
+        `;
       }
 
       if (!trackData.isPlaying) {
-        return html\`
+        return html`
           <div class="widget">
             <div class="not-playing">
               <div class="not-playing-icon">⏸</div>
               <div>Playback paused</div>
             </div>
           </div>
-        \`;
+        `;
       }
 
       const { track, features, genre } = trackData;
       const progressTime = formatTime(track.progress_ms);
       const durationTime = formatTime(track.duration_ms);
 
-      return html\`
+      return html`
         <div class="widget widget-glow now-playing">
           <div class="album-art-container">
             <div class="album-art-glow"></div>
             <div class="album-art">
               <img
-                src=\${track.albumArt}
-                alt=\${track.album}
+                src=${track.albumArt}
+                alt=${track.album}
                 crossorigin="anonymous"
               />
             </div>
           </div>
 
           <div class="track-info">
-            <div class="track-name">\${track.name}</div>
-            <div class="artist-name">\${track.artist}</div>
+            <div class="track-name">${track.name}</div>
+            <div class="artist-name">${track.artist}</div>
 
             <div class="track-meta">
-              <span class="genre-badge">\${genre || 'Music'}</span>
-              \${features.bpm && html\`
+              <span class="genre-badge">${genre || 'Music'}</span>
+              ${features.bpm && html`
                 <span class="bpm-display">
                   <span class="bpm-icon"></span>
-                  \${features.bpm} BPM
+                  ${features.bpm} BPM
                 </span>
-              \`}
+              `}
             </div>
 
             <div class="progress-bar-container">
               <div class="progress-bar">
-                <div class="progress-fill" style="width: \${progress}%"></div>
+                <div class="progress-fill" style="width: ${progress}%"></div>
               </div>
               <div class="progress-time">
-                <span>\${progressTime}</span>
-                <span>\${durationTime}</span>
+                <span>${progressTime}</span>
+                <span>${durationTime}</span>
               </div>
             </div>
           </div>
         </div>
-      \`;
+      `;
     }
 
-    render(html\`<\${NowPlaying} />\`, document.getElementById('root'));
+    render(html`<${NowPlaying} />`, document.getElementById('root'));
   </script>
 </body>
 </html>
