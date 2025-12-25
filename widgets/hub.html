@@ -228,16 +228,30 @@
             }));
 
             // Generate theme when track changes OR on first poll
+            console.log('[Hub] Poll callback:', { trackChanged, firstPoll, trackName: trackData.track.name });
+
             if (trackChanged || firstPoll) {
               console.log(`[Hub] ${firstPoll ? 'Initial load' : 'Track changed'}, generating new theme`);
-              const theme = await themeEngine.generateThemeFromTrack(trackData);
 
-              if (theme) {
-                themeEngine.broadcastTheme(theme);
-                console.log('[Hub] Theme broadcasted:', theme.genre, theme.bpm, 'BPM');
+              try {
+                const theme = await themeEngine.generateThemeFromTrack(trackData);
+                console.log('[Hub] Theme generated:', theme);
+
+                if (theme) {
+                  themeEngine.broadcastTheme(theme);
+                  themeEngine.applyTheme(theme);
+                  console.log('[Hub] Theme broadcasted:', theme.genre, theme.bpm, 'BPM');
+                } else {
+                  console.error('[Hub] Theme generation returned null/undefined');
+                }
+              } catch (error) {
+                console.error('[Hub] Theme generation failed:', error);
               }
 
               firstPoll = false;
+            } else {
+              console.log('[Hub] Skipping theme generation (no track change, not first poll)');
+            }
 
               // Flash Yeelights on track change
               fetch('/api/config')
