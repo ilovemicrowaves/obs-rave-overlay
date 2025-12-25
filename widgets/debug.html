@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Debug - Event Bus Test</title>
+  <style>
+    body {
+      margin: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      font-family: 'Courier New', monospace;
+      color: #10b981;
+      font-size: 14px;
+    }
+
+    .debug-panel {
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 600px;
+    }
+
+    .status {
+      margin: 10px 0;
+      padding: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 3px solid #10b981;
+    }
+
+    .error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .success {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    .log {
+      max-height: 300px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      margin: 4px 0;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import { h, render } from 'https://esm.sh/preact@10.19.3';
+    import { useState, useEffect } from 'https://esm.sh/preact@10.19.3/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    import { EventBus, EventTypes } from '../shared/lib/event-bus.js';
+
+    const html = htm.bind(h);
+
+    function Debug() {
+      const [eventBusStatus, setEventBusStatus] = useState('Initializing...');
+      const [themeStatus, setThemeStatus] = useState('Waiting for theme data...');
+      const [spotifyStatus, setSpotifyStatus] = useState('Waiting for Spotify data...');
+      const [beatStatus, setBeatStatus] = useState('Waiting for beat events...');
+      const [logs, setLogs] = useState([]);
+
+      function log(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = `[${timestamp}] ${message}`;
+        setLogs(prevLogs => [entry, ...prevLogs].slice(0, 50));
+        console.log(entry);
+      }
+
+      useEffect(() => {
+        const eventBus = new EventBus();
+
+        try {
+          setEventBusStatus('✅ EventBus connected');
+          log('EventBus initialized successfully');
+        } catch (error) {
+          setEventBusStatus('❌ EventBus failed: ' + error.message);
+          log('EventBus initialization failed: ' + error.message);
+        }
+
+        // Listen for theme updates
+        eventBus.on(EventTypes.THEME_UPDATE, (theme) => {
+          setThemeStatus(`✅ Theme: ${theme.genre} @ ${theme.bpm} BPM`);
+          log(`Theme received: ${theme.genre}, ${theme.bpm} BPM, energy: ${theme.audioFeatures?.energy?.toFixed(2)}`);
+          log(`Theme colors: primary=${theme.colors.primary}, secondary=${theme.colors.secondary}`);
+          log(`Beat duration: ${theme.effects.beatDuration}`);
+        });
+
+        // Listen for Spotify updates
+        eventBus.on(EventTypes.SPOTIFY_TRACK_UPDATE, (trackData) => {
+          setSpotifyStatus(`✅ Track: ${trackData.track.name} by ${trackData.track.artist}`);
+          log(`Spotify update: ${trackData.track.name} - ${trackData.track.artist}`);
+        });
+
+        // Listen for beat events
+        let beatCount = 0;
+        eventBus.on(EventTypes.BEAT_TICK, (beatData) => {
+          beatCount++;
+          setBeatStatus(`✅ Beat count: ${beatCount} (${beatData.bpm} BPM)`);
+          if (beatCount % 10 === 0) {
+            log(`Beat tick #${beatCount}: ${beatData.bpm} BPM, interval: ${beatData.beatInterval}ms`);
+          }
+        });
+
+        // Announce ready
+        eventBus.emit(EventTypes.WIDGET_READY, {
+          widget: 'debug',
+          timestamp: Date.now(),
+        });
+
+        log('Debug widget ready, listening for events...');
+
+        // Test broadcast
+        setTimeout(() => {
+          log('Sending test event...');
+          eventBus.emit('test:ping', { message: 'Debug widget test ping' });
+        }, 2000);
+
+        return () => eventBus.disconnect();
+      }, []);
+
+      return html`
+        <div class="debug-panel">
+          <h2>🔍 Event Bus Debug Panel</h2>
+
+          <div class="status ${eventBusStatus.includes('✅') ? 'success' : 'error'}">
+            ${eventBusStatus}
+          </div>
+
+          <div class="status ${themeStatus.includes('✅') ? 'success' : ''}">
+            ${themeStatus}
+          </div>
+
+          <div class="status ${spotifyStatus.includes('✅') ? 'success' : ''}">
+            ${spotifyStatus}
+          </div>
+
+          <div class="status ${beatStatus.includes('✅') ? 'success' : ''}">
+            ${beatStatus}
+          </div>
+
+          <div class="log">
+            ${logs.map(entry => html`<div class="log-entry">${entry}</div>`)}
+          </div>
+        </div>
+      `;
+    }
+
+    render(html`<${Debug} />`, document.getElementById('root'));
+  </script>
+</body>
+</html>
