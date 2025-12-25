@@ -11,13 +11,13 @@
     transform: translateY(0px) scale(1);
   }
   25% {
-    transform: translateY(-6px) scale(1.02);
+    transform: translateY(-3px) scale(1.01);
   }
   50% {
-    transform: translateY(-8px) scale(1.03);
+    transform: translateY(-4px) scale(1.02);
   }
   75% {
-    transform: translateY(-6px) scale(1.02);
+    transform: translateY(-3px) scale(1.01);
   }
 }
 
@@ -27,29 +27,29 @@
     transform: scale(1) rotate(0deg);
   }
   25% {
-    transform: scale(1.08) rotate(-1deg);
+    transform: scale(1.05) rotate(-0.5deg);
   }
   50% {
-    transform: scale(0.96) rotate(0deg);
+    transform: scale(0.98) rotate(0deg);
   }
   75% {
-    transform: scale(1.06) rotate(1deg);
+    transform: scale(1.04) rotate(0.5deg);
   }
 }
 
-/* HARDSTYLE - Sharp bounces, kick-driven movements (EXAGGERATED FOR TESTING) */
+/* HARDSTYLE - Sharp bounces, kick-driven movements */
 @keyframes dance-hardstyle {
   0% {
     transform: scale(1) translateY(0) rotate(0deg);
   }
   10% {
-    transform: scale(1.15) translateY(-10px) rotate(-2deg);
+    transform: scale(1.06) translateY(-4px) rotate(-0.5deg);
   }
   20% {
-    transform: scale(0.95) translateY(0) rotate(0deg);
+    transform: scale(0.98) translateY(0) rotate(0deg);
   }
   30% {
-    transform: scale(1.08) translateY(-5px) rotate(2deg);
+    transform: scale(1.03) translateY(-2px) rotate(0.5deg);
   }
   100% {
     transform: scale(1) translateY(0) rotate(0deg);
@@ -139,19 +139,19 @@
 }
 
 .widget-dance.theme-techno {
-  animation: dance-techno var(--beat-duration, 1000ms) steps(4, end) infinite both;
+  animation: dance-techno var(--beat-duration, 1000ms) steps(4, end) infinite both !important;
 }
 
 .widget-dance.theme-house {
-  animation: dance-house var(--beat-duration, 1000ms) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite both;
+  animation: dance-house var(--beat-duration, 1000ms) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite both !important;
 }
 
 .widget-dance.theme-dnb {
-  animation: dance-dnb var(--beat-duration, 1000ms) linear infinite both;
+  animation: dance-dnb var(--beat-duration, 1000ms) linear infinite both !important;
 }
 
 .widget-dance.theme-default {
-  animation: dance-default var(--beat-duration, 1000ms) ease-in-out infinite both;
+  animation: dance-default var(--beat-duration, 1000ms) ease-in-out infinite both !important;
 }
 
 /* ==================== INTENSITY MODIFIERS ==================== */
