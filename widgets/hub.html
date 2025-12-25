@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Hub - OBS Overlay</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: transparent;
+      font-family: 'Courier New', monospace;
+      color: #10b981;
+      font-size: 11px;
+    }
+
+    .hub-status {
+      background: rgba(0, 0, 0, 0.9);
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #10b981;
+      max-width: 300px;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+    }
+
+    .indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+
+    .indicator.active {
+      background: #10b981;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import { h, render } from 'https://esm.sh/preact@10.19.3';
+    import { useState, useEffect } from 'https://esm.sh/preact@10.19.3/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    import { EventBus, EventTypes } from '../shared/lib/event-bus.js';
+    import SpotifyService from '../shared/services/spotify-service.js';
+    import HomeAssistantService from '../shared/services/home-assistant-service.js';
+    import ThemeEngine from '../shared/lib/theme-engine.js';
+
+    const html = htm.bind(h);
+
+    // Check if debug mode is enabled
+    const DEBUG = new URLSearchParams(window.location.search).get('debug') === 'true';
+
+    function Hub() {
+      const [status, setStatus] = useState({
+        spotify: 'disconnected',
+        homeAssistant: 'disconnected',
+        eventBus: 'disconnected',
+        currentTrack: null,
+        lastUpdate: null,
+      });
+
+      useEffect(() => {
+        console.log('[Hub] Initializing...');
+
+        // Initialize Event Bus
+        const eventBus = new EventBus();
+        setStatus(prev => ({ ...prev, eventBus: 'connected' }));
+
+        // Initialize Theme Engine
+        const themeEngine = new ThemeEngine(eventBus);
+
+        // Initialize Spotify Service
+        const spotifyService = new SpotifyService();
+
+        // Initialize Home Assistant Service
+        const haService = new HomeAssistantService();
+
+        // Check configuration
+        fetch('/api/config')
+          .then(res => res.json())
+          .then(config => {
+            console.log('[Hub] Configuration:', config);
+
+            // Set up HA theme sync if enabled
+            if (config.widgets.syncThemeWithHALights) {
+              themeEngine.setSyncWithHomeAssistant(true);
+            }
+
+            // Connect to Home Assistant
+            if (config.homeAssistant.configured) {
+              haService.connect()
+                .then(() => {
+                  setStatus(prev => ({ ...prev, homeAssistant: 'connected' }));
+                  console.log('[Hub] Home Assistant connected');
+
+                  // Subscribe to Yeelight updates
+                  config.yeelightEntities.forEach(entityId => {
+                    haService.on(entityId, (lightState) => {
+                      console.log('[Hub] Yeelight state update:', entityId, lightState);
+
+                      // Broadcast to widgets
+                      eventBus.emit(EventTypes.HA_LIGHT_UPDATE, {
+                        entity_id: entityId,
+                        state: lightState.state,
+                        brightness: lightState.attributes?.brightness,
+                        rgb_color: lightState.attributes?.rgb_color,
+                        color_temp: lightState.attributes?.color_temp,
+                        friendly_name: lightState.attributes?.friendly_name,
+                        timestamp: Date.now(),
+                      });
+
+                      // Update theme if sync is enabled
+                      if (config.widgets.syncThemeWithHALights) {
+                        themeEngine.updateFromHomeAssistant(lightState.attributes);
+                      }
+                    });
+                  });
+
+                  // Initial Yeelight state fetch
+                  haService.getYeelights().then(lights => {
+                    lights.forEach(light => {
+                      eventBus.emit(EventTypes.HA_LIGHT_UPDATE, {
+                        ...light,
+                        timestamp: Date.now(),
+                      });
+                    });
+                  });
+                })
+                .catch(error => {
+                  console.error('[Hub] HA connection failed:', error);
+                  setStatus(prev => ({ ...prev, homeAssistant: 'error' }));
+                });
+            } else {
+              console.warn('[Hub] Home Assistant not configured');
+            }
+
+            // Check Spotify authentication
+            spotifyService.isAuthenticated()
+              .then(isAuth => {
+                if (isAuth) {
+                  setStatus(prev => ({ ...prev, spotify: 'connected' }));
+                  startSpotifyPolling();
+                } else {
+                  setStatus(prev => ({ ...prev, spotify: 'not_authenticated' }));
+                  console.warn('[Hub] Spotify not authenticated');
+
+                  // Emit error to widgets
+                  eventBus.emit(EventTypes.SPOTIFY_ERROR, {
+                    message: 'Not authenticated',
+                    authUrl: '/auth/spotify/login',
+                  });
+                }
+              })
+              .catch(error => {
+                console.error('[Hub] Spotify auth check failed:', error);
+                setStatus(prev => ({ ...prev, spotify: 'error' }));
+              });
+          })
+          .catch(error => {
+            console.error('[Hub] Config fetch failed:', error);
+          });
+
+        // Spotify polling function
+        function startSpotifyPolling() {
+          spotifyService.startPolling(async (trackData, trackChanged) => {
+            if (trackData.error) {
+              setStatus(prev => ({ ...prev, spotify: 'error' }));
+              eventBus.emit(EventTypes.SPOTIFY_ERROR, {
+                message: trackData.error,
+              });
+              return;
+            }
+
+            setStatus(prev => ({
+              ...prev,
+              currentTrack: trackData.track.name,
+              lastUpdate: new Date().toLocaleTimeString(),
+            }));
+
+            // Generate theme when track changes
+            if (trackChanged) {
+              console.log('[Hub] Track changed, generating new theme');
+              const theme = await themeEngine.generateThemeFromTrack(trackData);
+
+              if (theme) {
+                themeEngine.broadcastTheme(theme);
+              }
+            }
+
+            // Broadcast track update to all widgets
+            eventBus.emit(EventTypes.SPOTIFY_TRACK_UPDATE, trackData);
+
+            // Broadcast playback state
+            eventBus.emit(EventTypes.SPOTIFY_PLAYBACK_STATE, {
+              isPlaying: trackData.isPlaying,
+              progress_ms: trackData.track.progress_ms,
+              duration_ms: trackData.track.duration_ms,
+            });
+          }, 5000); // Poll every 5 seconds
+        }
+
+        // Emit hub ready event
+        setTimeout(() => {
+          eventBus.emit(EventTypes.HUB_READY, {
+            timestamp: Date.now(),
+          });
+        }, 1000);
+
+        // Cleanup
+        return () => {
+          spotifyService.stopPolling();
+          haService.disconnect();
+          eventBus.disconnect();
+        };
+      }, []);
+
+      if (!DEBUG) {
+        return html`<div class="hidden"></div>`;
+      }
+
+      return html`
+        <div class="hub-status">
+          <div style="font-weight: bold; margin-bottom: 8px; color: #10b981;">
+            🎛️ HUB STATUS
+          </div>
+
+          <div class="status-line">
+            <div class="indicator ${status.eventBus === 'connected' ? 'active' : ''}"></div>
+            <div>Event Bus: ${status.eventBus}</div>
+          </div>
+
+          <div class="status-line">
+            <div class="indicator ${status.spotify === 'connected' ? 'active' : ''}"></div>
+            <div>Spotify: ${status.spotify}</div>
+          </div>
+
+          <div class="status-line">
+            <div class="indicator ${status.homeAssistant === 'connected' ? 'active' : ''}"></div>
+            <div>Home Assistant: ${status.homeAssistant}</div>
+          </div>
+
+          ${status.currentTrack && html`
+            <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #10b981; font-size: 10px;">
+              <div>Now Playing:</div>
+              <div style="color: #fff; margin-top: 4px;">${status.currentTrack}</div>
+              <div style="color: #666; margin-top: 4px;">Updated: ${status.lastUpdate}</div>
+            </div>
+          `}
+
+          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #10b981; font-size: 9px; color: #666;">
+            Add ?debug=true to URL to show this panel<br/>
+            Position this off-screen in OBS
+          </div>
+        </div>
+      `;
+    }
+
+    render(html`<${Hub} />`, document.getElementById('root'));
+  </script>
+</body>
+</html>
